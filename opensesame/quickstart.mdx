@@ -1,0 +1,113 @@
+---
+title: Quick Start
+description: Solve your first captcha with OpenSesame in minutes.
+---
+
+## Install
+
+```bash
+git clone https://github.com/CascadingLabs/OpenSesame
+cd OpenSesame
+uv sync --extra live --extra ml-audio --extra ml-vision
+```
+
+## 1. Write a policy
+
+Policy is data: a frozen, TOML-loadable object. The one non-negotiable is `allow_sites` — it is **default-deny**, so an empty list solves nothing.
+
+```python
+from OpenSesame import SolverPolicy
+
+policy = SolverPolicy.auto_only(allow_sites=["www.google.com"])
+```
+
+Or keep it in `opensesame.toml` and load it:
+
+```toml
+allow_sites = ["www.google.com"]
+auto_timeout_s = 30.0
+min_confidence = 0.0
+audit_log = ".local/opensesame-audit.jsonl"
+```
+
+```python
+from OpenSesame import load_policy
+
+policy = load_policy("opensesame.toml")
+```
+
+`load_policy` resolves precedence global → per-host file (`host_dir`) → per-call keyword overrides. A typo'd TOML key fails loud (`extra="forbid"`), not silently.
+
+## 2. Build the solver
+
+`default_solver` wires the v1 engines (reCAPTCHA v2 audio + grid, OCR) and registers the built-in local-model providers whose dependencies are installed:
+
+```python
+from OpenSesame.api.defaults import default_solver
+
+solver = default_solver(policy)
+```
+
+## 3. Capture and solve
+
+VoidCrawl detects the wall and describes it; OpenSesame drives the page and resolves the solution into it:
+
+```python
+from OpenSesame import Challenge
+
+captcha = await page.capture_captcha()              # VoidCrawl describes the wall
+challenge = Challenge.from_capture(captcha)
+
+result = await solver.solve(challenge, page=page)
+
+if result.ok:
+    # The page now carries the token — submit the form / continue.
+    ...
+else:
+    print(result.status, result.error)
+```
+
+**Key points:**
+
+- The model loads once on first use and stays cached process-wide — no warmup ceremony. `async with solver.engine():` is optional sugar that pre-warms the policy's models and frees VRAM on exit.
+- Failure is a **value**: `result.status` is one of `SOLVED`, `FAILED`, `REFUSED`, `RATE_LIMITED`, `TIMEOUT`. The only raise is `SiteNotAllowed`, for a host missing from `allow_sites`.
+- Every result carries provenance (model, device, confidence, timing, policy id) and is appended to the JSONL audit log.
+
+## OCR challenges
+
+Distorted-text captchas have no widget or token — build the challenge directly:
+
+```python
+challenge = Challenge.ocr(
+    url=page_url,
+    image_selector="img.captcha",
+    response_field_selector="input[name=captcha]",
+)
+result = await solver.solve(challenge, page=page)
+# result.answer holds the text; with apply=True it is already typed into the field
+```
+
+## Over-the-wire mode
+
+By default OpenSesame applies the solution to the live page (`apply = true`). To relay a raw token to a *different* session instead, turn it off:
+
+```python
+result = await solver.solve(challenge, page=page, apply=False)
+if result.ok:
+    await other_page.inject_captcha_token(result.token)
+```
+
+## Tickets (non-blocking)
+
+`solve()` is sugar over an async ticket pair — the same seam a future queue-backed deployment swaps behind:
+
+```python
+ticket = solver.submit(challenge, page)          # returns immediately
+...                                              # do other work
+result = await solver.await_result(ticket)       # SolveResult, failure-as-value
+```
+
+## Next steps
+
+- [API Reference](/opensesame/reference/api-reference/) -- the full public surface
+- [VoidCrawl docs](/voidcrawl/) -- the browser side: detection, capture, stealth

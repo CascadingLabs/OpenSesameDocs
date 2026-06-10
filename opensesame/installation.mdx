@@ -1,0 +1,86 @@
+---
+title: Installation
+description: How to install OpenSesame and its optional model extras.
+---
+
+import { Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+OpenSesame requires Python 3.11+. The core API package is dependency-light (httpx, pydantic, rich-click); the local ML models are opt-in extras.
+
+## Install from Source
+
+OpenSesame is not yet published to PyPI — install from the repository:
+
+<Steps>
+1. Clone the repository
+
+   ```bash
+   git clone https://github.com/CascadingLabs/OpenSesame
+   cd OpenSesame
+   ```
+
+2. Install with uv
+
+   ```bash
+   uv sync
+   ```
+
+3. **Optional:** pick the extras for the solve paths you need
+
+   ```bash
+   uv sync --extra live --extra ml-audio --extra ml-vision
+   ```
+
+</Steps>
+
+## Extras
+
+| Extra | Pulls in | Enables |
+|-------|----------|---------|
+| `live` | `voidcrawl` | Driving a live page (challenge engines). OpenSesame consumes a VoidCrawl page; it never launches a browser itself. |
+| `ml-audio` | `torch`, `transformers` | Local audio transcription (reCAPTCHA audio side-door via Whisper). |
+| `ml-vision` | `torch`, `torchvision`, `transformers`, `pillow` | Local vision/OCR inference (grid tile classification, OCR captchas). |
+
+On an API-only install the heavy providers are absent: the API imports fine, and an engine raises a clear `LookupError` naming the missing extra the first time it needs a model.
+
+## Download Models
+
+Models are local and cached; pre-fetch them with the CLI:
+
+```bash
+opensesame download audio  --model openai/whisper-base.en
+opensesame download vision --model verytuffcat/recaptcha
+opensesame download ocr    --model anuashok/ocr-captcha-v3
+```
+
+### Verify the install
+
+```bash
+opensesame check     # validates the policy and reports engines + models
+```
+
+```python
+import OpenSesame
+print(OpenSesame.__all__)
+# ['AnswerSolution', 'Challenge', 'Delivery', 'Family', ...]
+```
+
+## FAQs
+
+<details>
+<summary>Do I need a GPU?</summary>
+
+No, but it helps. The Whisper and ViT models run on CPU; a GPU (CUDA or ROCm) makes the audio path comfortably faster than the auto-solve timeout. The `device` policy field is `"auto"` by default and resolves through the model registry.
+
+</details>
+
+<details>
+<summary>Do I need VoidCrawl?</summary>
+
+For live solving, yes — OpenSesame drives a page handle that VoidCrawl provides (install the `live` extra). The API package itself (policies, results, the registry) imports without it, which is how unit tests run browser-free.
+
+</details>
+
+## References
+
+<a id="ref-1"></a>△ **uv**. Astral. *Python package and project manager.* https://docs.astral.sh/uv/
