@@ -24,7 +24,7 @@ import JsonLd from '../../../src/components/JsonLd.astro';
 		url: "https://cascadinglabs.com",
 	},
 }} />
-**OpenSesame** is an async-native, self-hosted captcha/token-solving microservice that uses **local models** instead of paid solver APIs. It is the *solver*, not the browser: [VoidCrawl](/voidcrawl/) detects the wall and hands over a challenge descriptor; OpenSesame drives the live page (DOM-driven, no point-and-click) and, by default, **resolves the solution into the page itself** — token injected, answer typed. Callers just check `result.ok`.
+**OpenSesame** is an async-native, self-hosted captcha/token-solving microservice that uses **local models** instead of paid solver APIs. It is the *solver*, not the browser: [VoidCrawl](/voidcrawl/) detects the wall and hands over a challenge descriptor; OpenSesame drives the live page (DOM-driven, no point-and-click) and, by default, **resolves the solution into the page itself**: token injected, answer typed. Callers just check `result.ok`.
 
 > **Pairs with [VoidCrawl](/voidcrawl/)** -- VoidCrawl's `capture_captcha` produces the descriptor that `Challenge.from_capture` consumes.
 
@@ -34,7 +34,7 @@ import JsonLd from '../../../src/components/JsonLd.astro';
 - **Responsible-use is structural.** `allow_sites` is default-deny: an empty allowlist solves *nothing*, and a denied host raises `SiteNotAllowed` fail-closed. Solving is scoped to sites you are authorized to test.
 - **Failure is a value, not an exception.** Every attempt returns a `SolveResult` whose `status` says what happened (`SOLVED`, `FAILED`, `TIMEOUT`, `RATE_LIMITED`, `REFUSED`). Only misconfiguration raises.
 - **Policy-as-data.** A frozen, TOML-loadable `SolverPolicy` holds everything you'd diff across runs to explain a behavior change: allowed sites, timeouts, model choices, rate limits.
-- **Provenance built in.** Every result carries how it was reached — model, device, confidence, timing, policy id — and lands in a JSONL audit log.
+- **Provenance built in.** Every result carries how it was reached: model, device, confidence, timing, policy id, and lands in a JSONL audit log.
 - **One door, two machines.** Local-model and human-escalation paths sit behind one async ticket abstraction (`submit` → `await_result`), so a future queue-backed deployment swaps in without changing call sites.
 
 ## Quick Example
@@ -44,12 +44,13 @@ from OpenSesame import Challenge, SolverPolicy
 from OpenSesame.api.defaults import default_solver
 
 # Policy is data. allow_sites is default-deny (empty = solve nothing).
-solver = default_solver(SolverPolicy.auto_only(allow_sites=["www.google.com"]))
+# List only sites you are authorized to test.
+solver = default_solver(SolverPolicy.auto_only(allow_sites=["your-test-site.example"]))
 
 captcha = await page.capture_captcha()             # VoidCrawl describes the wall
 result = await solver.solve(Challenge.from_capture(captcha), page=page)
 
-if result.ok:        # the page now carries the token — submit the form / continue
+if result.ok:        # the page now carries the token; submit the form / continue
     ...
 ```
 
@@ -60,7 +61,7 @@ v1 solves **reCAPTCHA v2** (audio side-door via local Whisper, plus a DOM-driven
 <details>
 <summary>Is this a paid-API wrapper like 2Captcha clients?</summary>
 
-No. OpenSesame never calls a paid solving service. All inference is local — Whisper for the reCAPTCHA audio side-door, a ViT classifier for image grids, and OCR models for distorted text. That is the point of the project.
+No. OpenSesame never calls a paid solving service. All inference is local: Whisper for the reCAPTCHA audio side-door, a ViT classifier for image grids, and OCR models for distorted text. That is the point of the project.
 
 </details>
 
@@ -74,7 +75,7 @@ No. OpenSesame consumes a live page handle from VoidCrawl (or anything with the 
 <details>
 <summary>Can I solve on any site?</summary>
 
-Only sites you put in `allow_sites`. The allowlist is default-deny and enforced fail-closed — a host not on the list raises `SiteNotAllowed` before any solving starts. OpenSesame is built for testing properties you own or are authorized to assess.
+Only sites you put in `allow_sites`. The allowlist is default-deny and enforced fail-closed; a host not on the list raises `SiteNotAllowed` before any solving starts. OpenSesame is built for testing properties you own or are authorized to assess.
 
 </details>
 

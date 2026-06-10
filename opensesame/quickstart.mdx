@@ -13,18 +13,18 @@ uv sync --extra live --extra ml-audio --extra ml-vision
 
 ## 1. Write a policy
 
-Policy is data: a frozen, TOML-loadable object. The one non-negotiable is `allow_sites` — it is **default-deny**, so an empty list solves nothing.
+Policy is data: a frozen, TOML-loadable object. The one non-negotiable is `allow_sites`: it is **default-deny**, so an empty list solves nothing.
 
 ```python
 from OpenSesame import SolverPolicy
 
-policy = SolverPolicy.auto_only(allow_sites=["www.google.com"])
+policy = SolverPolicy.auto_only(allow_sites=["your-test-site.example"])
 ```
 
 Or keep it in `opensesame.toml` and load it:
 
 ```toml
-allow_sites = ["www.google.com"]
+allow_sites = ["your-test-site.example"]
 auto_timeout_s = 30.0
 min_confidence = 0.0
 audit_log = ".local/opensesame-audit.jsonl"
@@ -61,7 +61,7 @@ challenge = Challenge.from_capture(captcha)
 result = await solver.solve(challenge, page=page)
 
 if result.ok:
-    # The page now carries the token — submit the form / continue.
+    # The page now carries the token; submit the form / continue.
     ...
 else:
     print(result.status, result.error)
@@ -69,13 +69,13 @@ else:
 
 **Key points:**
 
-- The model loads once on first use and stays cached process-wide — no warmup ceremony. `async with solver.engine():` is optional sugar that pre-warms the policy's models and frees VRAM on exit.
+- The model loads once on first use and stays cached process-wide; no warmup ceremony. `async with solver.engine():` is optional sugar that pre-warms the policy's models and frees VRAM on exit.
 - Failure is a **value**: `result.status` is one of `SOLVED`, `FAILED`, `REFUSED`, `RATE_LIMITED`, `TIMEOUT`. The only raise is `SiteNotAllowed`, for a host missing from `allow_sites`.
 - Every result carries provenance (model, device, confidence, timing, policy id) and is appended to the JSONL audit log.
 
 ## OCR challenges
 
-Distorted-text captchas have no widget or token — build the challenge directly:
+Distorted-text captchas have no widget or token; build the challenge directly:
 
 ```python
 challenge = Challenge.ocr(
@@ -99,7 +99,7 @@ if result.ok:
 
 ## Tickets (non-blocking)
 
-`solve()` is sugar over an async ticket pair — the same seam a future queue-backed deployment swaps behind:
+`solve()` is sugar over an async ticket pair: the same seam a future queue-backed deployment swaps behind:
 
 ```python
 ticket = solver.submit(challenge, page)          # returns immediately
