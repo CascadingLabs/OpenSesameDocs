@@ -9,7 +9,7 @@ OpenSesame requires Python 3.11+. The core API package is dependency-light (http
 
 ## Install from Source
 
-OpenSesame is not yet published to PyPI — install from the repository:
+OpenSesame is not yet published to PyPI; install from the repository:
 
 <Steps>
 1. Clone the repository
@@ -77,7 +77,7 @@ No, but it helps. The Whisper and ViT models run on CPU; a GPU (CUDA or ROCm) ma
 <details>
 <summary>Do I need VoidCrawl?</summary>
 
-For live solving, yes — OpenSesame drives a page handle that VoidCrawl provides (install the `live` extra). The API package itself (policies, results, the registry) imports without it, which is how unit tests run browser-free.
+For live solving, yes: OpenSesame drives a page handle that VoidCrawl provides (install the `live` extra). The API package itself (policies, results, the registry) imports without it, which is how unit tests run browser-free.
 
 </details>
 
