@@ -20,8 +20,7 @@ Source files for the [OpenSesame](https://github.com/CascadingLabs/OpenSesame) d
 ## Structure
 
 - **opensesame/** - Core docs: introduction, installation, and quickstart
-- **opensesame/reference/** - API reference for the public solver API
-- **api-reference.md** - Canonical API reference snapshot (mirrored into `opensesame/reference/`)
+- **opensesame/reference/** - Generated API reference for the public solver API
 
 ## Contact
 
